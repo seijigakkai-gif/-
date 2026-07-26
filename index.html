@@ -1,4 +1,143 @@
-<!-- ▼▼ Firebase 連携スクリプト（エラー原因特定版） ▼▼ -->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中央大学政治学会 運営システム</title>
+    <style>
+        :root { --primary: #333; --chat-bg: #96C78C; }
+        body, html { margin: 0; padding: 0; font-family: "Helvetica Neue", Arial, sans-serif; height: 100%; overflow: hidden; }
+        
+        /* ヘッダー */
+        #header { position: fixed; top: 0; left: 0; width: 100%; height: 60px; background: rgba(255, 255, 255, 0.9); border-bottom: 1px solid #ccc; display: flex; align-items: center; padding: 0 20px; z-index: 1000; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        #header select { padding: 8px; font-size: 16px; border-radius: 4px; border: 1px solid #aaa; }
+        #nav-home { margin-left: 20px; cursor: pointer; color: blue; text-decoration: underline; font-weight: bold; }
+        
+        /* ページ共通 */
+        .page { display: none; height: 100%; padding-top: 60px; box-sizing: border-box; overflow-y: auto; }
+        .page.active { display: block; }
+
+        /* 1. トップページ */
+        #page-top {
+            background-image: linear-gradient(rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.7)), url('https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=1920&q=80');
+            background-size: cover; background-position: center;
+        }
+        .menu-container { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 20px; height: calc(100vh - 60px); max-width: 800px; margin: 0 auto; }
+        .menu-btn { width: 40%; padding: 40px 20px; font-size: 24px; font-weight: bold; background: rgba(255, 255, 255, 0.9); border: 2px solid var(--primary); border-radius: 12px; cursor: pointer; transition: 0.2s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .menu-btn:hover { background: var(--primary); color: white; }
+
+        /* 2. 進行中の企画（カレンダー） */
+        #calendar-header { display: flex; justify-content: space-between; padding: 20px; align-items: center; font-size: 20px; font-weight: bold; }
+        .cal-btn { padding: 5px 15px; cursor: pointer; }
+        #calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ccc; margin: 0 20px;}
+        .cal-cell { background: white; min-height: 100px; padding: 5px; font-size: 14px;}
+        .cal-cell-header { background: #eee; text-align: center; padding: 10px 0; font-weight: bold; }
+        .cal-date { font-weight: bold; margin-bottom: 5px; color: #555; }
+        .cal-content { min-height: 60px; outline: none; white-space: pre-wrap; }
+        .cal-content:focus { background: #f9f9f9; }
+
+        /* 3. タスク管理 */
+        #task-container { padding: 20px; }
+        #memo-view textarea { width: 100%; height: 60vh; font-size: 16px; padding: 10px; box-sizing: border-box; }
+        #sheet-view table { width: 100%; border-collapse: collapse; }
+        #sheet-view th, #sheet-view td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        #sheet-view td { contenteditable: true; }
+        #sheet-view td:focus { background: #f0f8ff; outline: none; }
+
+        /* 4. チャット */
+        #page-chat { background-color: var(--chat-bg); }
+        #page-chat.active { display: flex; flex-direction: column; }
+        #chat-messages { flex-grow: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .chat-msg { background: white; padding: 10px 15px; border-radius: 15px; max-width: 70%; align-self: flex-start; box-shadow: 0 1px 2px rgba(0,0,0,0.1);}
+        .chat-name { font-size: 12px; color: #666; margin-bottom: 4px; font-weight: bold; }
+        #chat-input-area { background: rgba(255,255,255,0.9); padding: 15px; display: flex; gap: 10px; border-top: 1px solid #ccc; }
+        #chat-name { width: 120px; padding: 8px; border: 1px solid #ccc; border-radius: 4px;}
+        #chat-text { flex-grow: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px;}
+        #chat-send { padding: 8px 20px; background: #333; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;}
+
+        /* 5. 役員相関図 */
+        #page-chart { padding: 20px; text-align: center; }
+        #upload-btn { padding: 15px 30px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 20px; }
+        #chart-image { max-width: 100%; margin-top: 20px; display: none; border: 1px solid #ccc; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+
+    <!-- ヘッダー -->
+    <div id="header">
+        <select id="role-select">
+            <option value="">-- 役職を選択 --</option>
+            <option value="委員長">1. 委員長</option>
+            <option value="広報局長">2. 広報局長</option>
+            <option value="政策連携局長">3. 政策連携局長</option>
+            <option value="統合運用">4. 統合運用</option>
+            <option value="講演会局長">5. 講演会局長</option>
+        </select>
+        <div id="nav-home" onclick="navigate('top')">トップに戻る</div>
+    </div>
+
+    <!-- 1. トップページ -->
+    <div id="page-top" class="page active">
+        <div class="menu-container">
+            <button class="menu-btn" onclick="navigate('calendar')">進行中の企画</button>
+            <button class="menu-btn" onclick="navigate('task')">タスク管理</button>
+            <button class="menu-btn" onclick="navigate('chat')">チャット</button>
+            <button class="menu-btn" onclick="navigate('chart')">役員相関図</button>
+        </div>
+    </div>
+
+    <!-- 2. カレンダー -->
+    <div id="page-calendar" class="page">
+        <div id="calendar-header">
+            <button class="cal-btn" onclick="changeMonth(-1)">← 先月</button>
+            <div id="cal-month-label"></div>
+            <button class="cal-btn" onclick="changeMonth(1)">来月 →</button>
+        </div>
+        <div id="calendar-grid"></div>
+    </div>
+
+    <!-- 3. タスク管理 -->
+    <div id="page-task" class="page">
+        <div id="task-container">
+            <div id="memo-view">
+                <h3>共有メモ（全員共通）</h3>
+                <textarea id="task-memo" placeholder="ここに書き込むと自動でクラウドに保存されます..."></textarea>
+            </div>
+            <div id="sheet-view" style="display: none;">
+                <h3 id="sheet-title">タスク管理シート</h3>
+                <table>
+                    <tr><th>タスク名</th><th>担当者</th><th>期限</th><th>進捗・備考</th></tr>
+                    <tr><td></td><td></td><td></td><td></td></tr>
+                    <tr><td></td><td></td><td></td><td></td></tr>
+                    <tr><td></td><td></td><td></td><td></td></tr>
+                </table>
+                <p style="font-size: 12px; color: #666; margin-top: 10px;">※セルをクリックして直接入力できます。入力後は自動保存されます。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. チャット -->
+    <div id="page-chat" class="page">
+        <div id="chat-messages"></div>
+        <div id="chat-input-area">
+            <input type="text" id="chat-name" placeholder="名前を入力（必須）">
+            <input type="text" id="chat-text" placeholder="メッセージを入力...">
+            <button id="chat-send">送信</button>
+        </div>
+    </div>
+
+    <!-- 5. 役員相関図 -->
+    <div id="page-chart" class="page">
+        <h2>役員相関図</h2>
+        <div>
+            <input type="file" id="file-input" style="display: none;" accept="image/*">
+            <button id="upload-btn" onclick="document.getElementById('file-input').click();">ここにアップロード</button>
+            <p id="upload-status" style="font-size: 14px; color: #666;"></p>
+        </div>
+        <img id="chart-image" alt="相関図">
+    </div>
+
+    <!-- ▼▼ Firebase 連携スクリプト ▼▼ -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
@@ -18,9 +157,8 @@
         try {
             const app = initializeApp(firebaseConfig);
             db = getFirestore(app);
-            console.log("Firebaseの初期化に成功しました");
         } catch (error) {
-            alert("【致命的なエラー】Firebaseの接続設定が間違っているか、読み込みに失敗しました。\n" + error.message);
+            alert("【エラー】Firebaseの読み込みに失敗しました。\n" + error.message);
         }
 
         // --- 画面遷移 ---
@@ -58,27 +196,22 @@
                 });
                 msgContainer.scrollTop = msgContainer.scrollHeight;
             }, (error) => {
-                alert("【チャット読み込みエラー】\n権限がないか、通信がブロックされています。\n" + error.message);
+                console.error("チャット読み込みエラー:", error);
             });
         } catch(error) {}
 
-        // 送信ボタンを押したときの処理（ここでエラーをキャッチします）
         document.getElementById('chat-send').addEventListener('click', async () => {
             if(!txtName.value.trim()) return alert("名前を入力してください");
             if(!txtMsg.value.trim()) return;
-            
             try {
-                // データベースへ保存処理
                 await addDoc(collection(db, "chats"), {
                     name: txtName.value.trim(),
                     text: txtMsg.value.trim(),
                     createdAt: serverTimestamp()
                 });
-                txtMsg.value = ''; // 成功したら入力欄を空にする
-                // alert("保存に成功しました！"); // テスト用（成功時はアラートを出さない場合はコメントアウト）
+                txtMsg.value = '';
             } catch (error) {
-                // ★失敗した場合、画面に強制的に原因を表示する★
-                alert("【保存失敗】\nクラウドへの保存が弾かれました。\n\n詳細な原因: " + error.message);
+                alert("【保存失敗】\n詳細: " + error.message);
             }
         });
 
@@ -88,7 +221,7 @@
             try {
                 await setDoc(doc(db, "tasks", "shared_memo"), { text: taskMemo.value });
             } catch (error) {
-                alert("【メモ保存失敗】\n詳細な原因: " + error.message);
+                alert("【メモ保存失敗】\n" + error.message);
             }
         });
         
@@ -112,9 +245,29 @@
             }
         }
 
-        // --- カレンダー機能（UIのみ） ---
+        // --- 【新規追加】カレンダー保存・同期機能 ---
         let currentYear = new Date().getFullYear();
         let currentMonth = new Date().getMonth();
+        let calendarDataCache = {}; // 全日程のデータを一時保存する場所
+
+        // データベースからカレンダー情報をリアルタイム取得
+        try {
+            onSnapshot(collection(db, "calendar"), (snapshot) => {
+                snapshot.forEach((docSnap) => {
+                    const dateKey = docSnap.id; // 例: 2026-04-15
+                    const data = docSnap.data();
+                    calendarDataCache[dateKey] = data.text;
+
+                    // 現在表示されているカレンダーのマスがあれば、テキストを更新する
+                    const cell = document.getElementById('cal-' + dateKey);
+                    // 自分が入力中の時は上書きしないようにする
+                    if(cell && document.activeElement !== cell) {
+                        cell.innerText = data.text;
+                    }
+                });
+            });
+        } catch(error) {}
+
         window.changeMonth = function(diff) {
             currentMonth += diff;
             if(currentMonth < 0) { currentMonth = 11; currentYear--; }
@@ -133,17 +286,43 @@
             });
             const firstDay = new Date(currentYear, currentMonth, 1).getDay();
             const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+            
             for(let i = 0; i < firstDay; i++) {
                 const empty = document.createElement('div');
                 empty.className = 'cal-cell'; empty.style.background = '#f5f5f5'; grid.appendChild(empty);
             }
+            
             for(let i = 1; i <= daysInMonth; i++) {
-                const cell = document.createElement('div'); cell.className = 'cal-cell';
-                cell.innerHTML = `<div class="cal-date">${i}</div><div class="cal-content" contenteditable="true"></div>`;
+                const cell = document.createElement('div'); 
+                cell.className = 'cal-cell';
+                
+                // YYYY-MM-DD 形式の日付キーを作成（例: 2026-04-05）
+                const monthStr = String(currentMonth + 1).padStart(2, '0');
+                const dayStr = String(i).padStart(2, '0');
+                const dateKey = `${currentYear}-${monthStr}-${dayStr}`;
+
+                // セルの作成（IDを付与）
+                cell.innerHTML = `<div class="cal-date">${i}</div><div class="cal-content" id="cal-${dateKey}" contenteditable="true"></div>`;
                 grid.appendChild(cell);
+
+                const contentDiv = cell.querySelector('.cal-content');
+                
+                // 既にキャッシュ（データベース）にデータがあれば表示する
+                if(calendarDataCache[dateKey]) {
+                    contentDiv.innerText = calendarDataCache[dateKey];
+                }
+
+                // セルからフォーカスが外れたとき（入力確定時）に保存する
+                contentDiv.addEventListener('blur', async (e) => {
+                    try {
+                        await setDoc(doc(db, "calendar", dateKey), { text: e.target.innerText });
+                    } catch (error) {
+                        alert("【カレンダー保存失敗】\n" + error.message);
+                    }
+                });
             }
         }
-        renderCalendar();
+        renderCalendar(); // 初回描画
 
         // --- 役員相関図アップロード機能 ---
         const fileInput = document.getElementById('file-input');
@@ -188,7 +367,7 @@
                         await setDoc(doc(db, "settings", "org_chart"), { url: compressedBase64 });
                         uploadStatus.innerText = "アップロード完了！";
                     } catch(error) {
-                        alert("【画像保存失敗】\n詳細な原因: " + error.message);
+                        alert("【画像保存失敗】\n詳細: " + error.message);
                         uploadStatus.innerText = "エラーが発生しました";
                     }
                 };
