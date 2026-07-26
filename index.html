@@ -15,6 +15,7 @@
         
         /* ページ共通 */
         .page { display: none; height: 100%; padding-top: 60px; box-sizing: border-box; overflow-y: auto; }
+        /* アクティブなページだけを表示 */
         .page.active { display: block; }
 
         /* 1. トップページ */
@@ -44,8 +45,10 @@
         #sheet-view td { contenteditable: true; }
         #sheet-view td:focus { background: #f0f8ff; outline: none; }
 
-        /* 4. チャット */
-        #page-chat { background-color: var(--chat-bg); display: flex; flex-direction: column; }
+        /* 4. チャット（※バグ修正：.activeの時だけflexになるように修正） */
+        #page-chat { background-color: var(--chat-bg); }
+        #page-chat.active { display: flex; flex-direction: column; }
+        
         #chat-messages { flex-grow: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
         .chat-msg { background: white; padding: 10px 15px; border-radius: 15px; max-width: 70%; align-self: flex-start; box-shadow: 0 1px 2px rgba(0,0,0,0.1);}
         .chat-name { font-size: 12px; color: #666; margin-bottom: 4px; font-weight: bold; }
@@ -98,12 +101,10 @@
     <!-- 3. タスク管理 -->
     <div id="page-task" class="page">
         <div id="task-container">
-            <!-- 未選択時のメモ -->
             <div id="memo-view">
                 <h3>共有メモ（全員共通）</h3>
                 <textarea id="task-memo" placeholder="ここに書き込むと自動でクラウドに保存されます..."></textarea>
             </div>
-            <!-- 役職選択時のシート -->
             <div id="sheet-view" style="display: none;">
                 <h3 id="sheet-title">タスク管理シート</h3>
                 <table>
@@ -138,14 +139,11 @@
         <img id="chart-image" alt="相関図">
     </div>
 
-    <!-- ▼▼ Firebase 連携スクリプト (type="module"が必須) ▼▼ -->
+    <!-- ▼▼ Firebase 連携スクリプト（Storage回避・自動圧縮版） ▼▼ -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-analytics.js";
         import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
-        // Firebaseの設定（いただいたコードそのまま）
         const firebaseConfig = {
             apiKey: "AIzaSyDS_oWl3VV3lUe4h95VGflptuOkItvFM18",
             authDomain: "try-it-1-5d336.firebaseapp.com",
@@ -157,11 +155,9 @@
         };
 
         const app = initializeApp(firebaseConfig);
-        const analytics = getAnalytics(app);
         const db = getFirestore(app);
-        const storage = getStorage(app);
 
-        // --- 画面遷移のグローバル関数化（モジュール対応） ---
+        // --- 画面遷移 ---
         window.navigate = function(pageId) {
             document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
             document.getElementById('page-' + pageId).classList.add('active');
@@ -178,12 +174,11 @@
             if(document.getElementById('page-task').classList.contains('active')) updateTaskView();
         });
 
-        // --- 【Firebase】チャット機能 ---
+        // --- チャット機能 ---
         const msgContainer = document.getElementById('chat-messages');
         const txtName = document.getElementById('chat-name');
         const txtMsg = document.getElementById('chat-text');
         
-        // 過去のチャット履歴を取得してリアルタイム更新
         const q = query(collection(db, "chats"), orderBy("createdAt", "asc"));
         onSnapshot(q, (snapshot) => {
             msgContainer.innerHTML = '';
@@ -194,10 +189,9 @@
                 msgDiv.innerHTML = `<div class="chat-name">${data.name}</div><div>${data.text}</div>`;
                 msgContainer.appendChild(msgDiv);
             });
-            msgContainer.scrollTop = msgContainer.scrollHeight; // 一番下にスクロール
+            msgContainer.scrollTop = msgContainer.scrollHeight;
         });
 
-        // メッセージ送信
         document.getElementById('chat-send').addEventListener('click', async () => {
             if(!txtName.value.trim()) return alert("名前を入力してください");
             if(!txtMsg.value.trim()) return;
@@ -209,13 +203,11 @@
             txtMsg.value = '';
         });
 
-        // --- 【Firebase】タスク管理（共有メモ）機能 ---
+        // --- タスク管理（共有メモ）機能 ---
         const taskMemo = document.getElementById('task-memo');
-        // メモ入力後にフォーカスが外れたらクラウドに保存
         taskMemo.addEventListener('blur', async () => {
             await setDoc(doc(db, "tasks", "shared_memo"), { text: taskMemo.value });
         });
-        // 他の人がメモを更新したらリアルタイム反映
         onSnapshot(doc(db, "tasks", "shared_memo"), (docSnap) => {
             if(docSnap.exists() && document.activeElement !== taskMemo) {
                 taskMemo.value = docSnap.data().text;
@@ -234,7 +226,7 @@
             }
         }
 
-        // --- カレンダー機能（UI描画のみ・クラウド保存は応用編としてUI構築のみ実装） ---
+        // --- カレンダー機能 ---
         let currentYear = new Date().getFullYear();
         let currentMonth = new Date().getMonth();
         window.changeMonth = function(diff) {
@@ -267,12 +259,11 @@
         }
         renderCalendar();
 
-        // --- 【Firebase】役員相関図アップロード機能 ---
+        // --- 【機能改善】役員相関図アップロード機能（自動圧縮＋Firestore保存） ---
         const fileInput = document.getElementById('file-input');
         const uploadStatus = document.getElementById('upload-status');
         const chartImage = document.getElementById('chart-image');
 
-        // 画像のURLがデータベースに保存されたら表示する
         onSnapshot(doc(db, "settings", "org_chart"), (docSnap) => {
             if(docSnap.exists()) {
                 chartImage.src = docSnap.data().url;
@@ -281,24 +272,47 @@
             }
         });
 
-        fileInput.addEventListener('change', async (e) => {
+        fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
-            if(file) {
-                uploadStatus.innerText = "アップロード中...";
-                try {
-                    // Storageに画像を保存
-                    const imageRef = ref(storage, 'org-chart/' + file.name);
-                    await uploadBytes(imageRef, file);
-                    // 保存した画像の表示用URLを取得
-                    const url = await getDownloadURL(imageRef);
-                    // URLをFirestore(データベース)に保存し、全員に共有
-                    await setDoc(doc(db, "settings", "org_chart"), { url: url });
-                    uploadStatus.innerText = "アップロード完了！";
-                } catch(error) {
-                    console.error(error);
-                    uploadStatus.innerText = "エラーが発生しました（権限設定を確認してください）";
-                }
-            }
+            if(!file) return;
+            
+            uploadStatus.innerText = "画像を最適化中...";
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = async function() {
+                    // キャンバスを作成して画像を縮小（横幅最大800pxに制限）
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 800;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > MAX_WIDTH) {
+                        height *= MAX_WIDTH / width;
+                        width = MAX_WIDTH;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // JPEG形式、画質70%で圧縮してテキストデータ化（これで1MB以下に収まる）
+                    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+
+                    uploadStatus.innerText = "クラウドに保存中...";
+                    try {
+                        await setDoc(doc(db, "settings", "org_chart"), { url: compressedBase64 });
+                        uploadStatus.innerText = "アップロード完了！";
+                    } catch(error) {
+                        console.error(error);
+                        uploadStatus.innerText = "エラーが発生しました";
+                    }
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
         });
     </script>
 </body>
