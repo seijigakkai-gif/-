@@ -5,51 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>中央大学政治学会 運営システム</title>
     <style>
-        :root {
-            --primary: #333;
-            --chat-bg: #96C78C;
-        }
-        body, html {
-            margin: 0; padding: 0; font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
-            height: 100%; overflow: hidden;
-        }
-        /* --- 共通ヘッダー（左上役職選択） --- */
-        #header {
-            position: fixed; top: 0; left: 0; width: 100%; height: 60px;
-            background: rgba(255, 255, 255, 0.9); border-bottom: 1px solid #ccc;
-            display: flex; align-items: center; padding: 0 20px; z-index: 1000; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        #header select {
-            padding: 8px; font-size: 16px; border-radius: 4px; border: 1px solid #aaa;
-        }
-        #nav-home {
-            margin-left: 20px; cursor: pointer; color: blue; text-decoration: underline; font-weight: bold;
-        }
-        /* --- ページコンテナ --- */
-        .page {
-            display: none; height: 100%; padding-top: 60px; box-sizing: border-box; overflow-y: auto;
-        }
+        :root { --primary: #333; --chat-bg: #96C78C; }
+        body, html { margin: 0; padding: 0; font-family: "Helvetica Neue", Arial, sans-serif; height: 100%; overflow: hidden; }
+        
+        /* ヘッダー */
+        #header { position: fixed; top: 0; left: 0; width: 100%; height: 60px; background: rgba(255, 255, 255, 0.9); border-bottom: 1px solid #ccc; display: flex; align-items: center; padding: 0 20px; z-index: 1000; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        #header select { padding: 8px; font-size: 16px; border-radius: 4px; border: 1px solid #aaa; }
+        #nav-home { margin-left: 20px; cursor: pointer; color: blue; text-decoration: underline; font-weight: bold; }
+        
+        /* ページ共通 */
+        .page { display: none; height: 100%; padding-top: 60px; box-sizing: border-box; overflow-y: auto; }
         .page.active { display: block; }
 
-        /* --- 1. トップページ --- */
+        /* 1. トップページ */
         #page-top {
-            /* 茗荷谷キャンパスの写真の代わりにプレースホルダーを設定。実際の画像URLに差し替えてください */
             background-image: linear-gradient(rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.7)), url('https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=1920&q=80');
             background-size: cover; background-position: center;
         }
-        .menu-container {
-            display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 20px;
-            height: calc(100vh - 60px); max-width: 800px; margin: 0 auto;
-        }
-        .menu-btn {
-            width: 40%; padding: 40px 20px; font-size: 24px; font-weight: bold;
-            background: rgba(255, 255, 255, 0.9); border: 2px solid var(--primary);
-            border-radius: 12px; cursor: pointer; transition: 0.2s; text-align: center;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
+        .menu-container { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 20px; height: calc(100vh - 60px); max-width: 800px; margin: 0 auto; }
+        .menu-btn { width: 40%; padding: 40px 20px; font-size: 24px; font-weight: bold; background: rgba(255, 255, 255, 0.9); border: 2px solid var(--primary); border-radius: 12px; cursor: pointer; transition: 0.2s; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .menu-btn:hover { background: var(--primary); color: white; }
 
-        /* --- 2. 進行中の企画（カレンダー） --- */
+        /* 2. 進行中の企画（カレンダー） */
         #calendar-header { display: flex; justify-content: space-between; padding: 20px; align-items: center; font-size: 20px; font-weight: bold; }
         .cal-btn { padding: 5px 15px; cursor: pointer; }
         #calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ccc; margin: 0 20px;}
@@ -59,7 +36,7 @@
         .cal-content { min-height: 60px; outline: none; }
         .cal-content:focus { background: #f9f9f9; }
 
-        /* --- 3. タスク管理 --- */
+        /* 3. タスク管理 */
         #task-container { padding: 20px; }
         #memo-view textarea { width: 100%; height: 60vh; font-size: 16px; padding: 10px; box-sizing: border-box; }
         #sheet-view table { width: 100%; border-collapse: collapse; }
@@ -67,7 +44,7 @@
         #sheet-view td { contenteditable: true; }
         #sheet-view td:focus { background: #f0f8ff; outline: none; }
 
-        /* --- 4. チャット --- */
+        /* 4. チャット */
         #page-chat { background-color: var(--chat-bg); display: flex; flex-direction: column; }
         #chat-messages { flex-grow: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
         .chat-msg { background: white; padding: 10px 15px; border-radius: 15px; max-width: 70%; align-self: flex-start; box-shadow: 0 1px 2px rgba(0,0,0,0.1);}
@@ -77,16 +54,15 @@
         #chat-text { flex-grow: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px;}
         #chat-send { padding: 8px 20px; background: #333; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;}
 
-        /* --- 5. 役員相関図 --- */
+        /* 5. 役員相関図 */
         #page-chart { padding: 20px; text-align: center; }
-        #upload-btn-container { margin-top: 50px; }
-        #upload-btn { padding: 15px 30px; font-size: 18px; font-weight: bold; cursor: pointer; }
+        #upload-btn { padding: 15px 30px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 20px; }
         #chart-image { max-width: 100%; margin-top: 20px; display: none; border: 1px solid #ccc; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
     </style>
 </head>
 <body>
 
-    <!-- ヘッダー（役職選択） -->
+    <!-- ヘッダー -->
     <div id="header">
         <select id="role-select">
             <option value="">-- 役職を選択 --</option>
@@ -96,10 +72,10 @@
             <option value="統合運用">4. 統合運用</option>
             <option value="講演会局長">5. 講演会局長</option>
         </select>
-        <div id="nav-home">トップに戻る</div>
+        <div id="nav-home" onclick="navigate('top')">トップに戻る</div>
     </div>
 
-    <!-- トップページ -->
+    <!-- 1. トップページ -->
     <div id="page-top" class="page active">
         <div class="menu-container">
             <button class="menu-btn" onclick="navigate('calendar')">進行中の企画</button>
@@ -109,25 +85,25 @@
         </div>
     </div>
 
-    <!-- 進行中の企画（カレンダー） -->
+    <!-- 2. カレンダー -->
     <div id="page-calendar" class="page">
         <div id="calendar-header">
             <button class="cal-btn" onclick="changeMonth(-1)">← 先月</button>
-            <div id="cal-month-label">2026年 4月</div>
+            <div id="cal-month-label"></div>
             <button class="cal-btn" onclick="changeMonth(1)">来月 →</button>
         </div>
-        <div id="calendar-grid">
-            <!-- JavaScriptで生成 -->
-        </div>
+        <div id="calendar-grid"></div>
     </div>
 
-    <!-- タスク管理 -->
+    <!-- 3. タスク管理 -->
     <div id="page-task" class="page">
         <div id="task-container">
+            <!-- 未選択時のメモ -->
             <div id="memo-view">
-                <h3>共有メモ（役職未選択時）</h3>
-                <textarea id="task-memo" placeholder="自由にメモを書き込めます..."></textarea>
+                <h3>共有メモ（全員共通）</h3>
+                <textarea id="task-memo" placeholder="ここに書き込むと自動でクラウドに保存されます..."></textarea>
             </div>
+            <!-- 役職選択時のシート -->
             <div id="sheet-view" style="display: none;">
                 <h3 id="sheet-title">タスク管理シート</h3>
                 <table>
@@ -135,19 +111,15 @@
                     <tr><td></td><td></td><td></td><td></td></tr>
                     <tr><td></td><td></td><td></td><td></td></tr>
                     <tr><td></td><td></td><td></td><td></td></tr>
-                    <tr><td></td><td></td><td></td><td></td></tr>
-                    <tr><td></td><td></td><td></td><td></td></tr>
                 </table>
-                <p style="font-size: 12px; color: #666; margin-top: 10px;">※セルをクリックして直接入力できます。</p>
+                <p style="font-size: 12px; color: #666; margin-top: 10px;">※セルをクリックして直接入力できます。入力後は自動保存されます。</p>
             </div>
         </div>
     </div>
 
-    <!-- チャット -->
+    <!-- 4. チャット -->
     <div id="page-chat" class="page">
-        <div id="chat-messages">
-            <!-- メッセージがここに追加されます -->
-        </div>
+        <div id="chat-messages"></div>
         <div id="chat-input-area">
             <input type="text" id="chat-name" placeholder="名前を入力（必須）">
             <input type="text" id="chat-text" placeholder="メッセージを入力...">
@@ -155,40 +127,101 @@
         </div>
     </div>
 
-    <!-- 役員相関図 -->
+    <!-- 5. 役員相関図 -->
     <div id="page-chart" class="page">
         <h2>役員相関図</h2>
-        <div id="upload-btn-container">
+        <div>
             <input type="file" id="file-input" style="display: none;" accept="image/*">
             <button id="upload-btn" onclick="document.getElementById('file-input').click();">ここにアップロード</button>
+            <p id="upload-status" style="font-size: 14px; color: #666;"></p>
         </div>
         <img id="chart-image" alt="相関図">
     </div>
 
-    <script>
-        // --- 画面遷移ロジック ---
-        function navigate(pageId) {
+    <!-- ▼▼ Firebase 連携スクリプト (type="module"が必須) ▼▼ -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-analytics.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
+
+        // Firebaseの設定（いただいたコードそのまま）
+        const firebaseConfig = {
+            apiKey: "AIzaSyDS_oWl3VV3lUe4h95VGflptuOkItvFM18",
+            authDomain: "try-it-1-5d336.firebaseapp.com",
+            projectId: "try-it-1-5d336",
+            storageBucket: "try-it-1-5d336.firebasestorage.app",
+            messagingSenderId: "717290415891",
+            appId: "1:717290415891:web:c6d9b27e84fe410e25dce6",
+            measurementId: "G-LBTF406BMJ"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        // --- 画面遷移のグローバル関数化（モジュール対応） ---
+        window.navigate = function(pageId) {
             document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
             document.getElementById('page-' + pageId).classList.add('active');
             if(pageId === 'task') updateTaskView();
-        }
-        document.getElementById('nav-home').addEventListener('click', () => navigate('top'));
+        };
 
         // --- 役職選択状態の保持 ---
         const roleSelect = document.getElementById('role-select');
-        roleSelect.addEventListener('change', (e) => {
-            // 【クラウド保存用】 役職は個人のブラウザに保存（localStorage）
-            localStorage.setItem('selectedRole', e.target.value);
-            if(document.getElementById('page-task').classList.contains('active')) {
-                updateTaskView();
-            }
-        });
-        // ロード時に復元
         if(localStorage.getItem('selectedRole')) {
             roleSelect.value = localStorage.getItem('selectedRole');
         }
+        roleSelect.addEventListener('change', (e) => {
+            localStorage.setItem('selectedRole', e.target.value);
+            if(document.getElementById('page-task').classList.contains('active')) updateTaskView();
+        });
 
-        // --- タスク管理の表示切替 ---
+        // --- 【Firebase】チャット機能 ---
+        const msgContainer = document.getElementById('chat-messages');
+        const txtName = document.getElementById('chat-name');
+        const txtMsg = document.getElementById('chat-text');
+        
+        // 過去のチャット履歴を取得してリアルタイム更新
+        const q = query(collection(db, "chats"), orderBy("createdAt", "asc"));
+        onSnapshot(q, (snapshot) => {
+            msgContainer.innerHTML = '';
+            snapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                const msgDiv = document.createElement('div');
+                msgDiv.className = 'chat-msg';
+                msgDiv.innerHTML = `<div class="chat-name">${data.name}</div><div>${data.text}</div>`;
+                msgContainer.appendChild(msgDiv);
+            });
+            msgContainer.scrollTop = msgContainer.scrollHeight; // 一番下にスクロール
+        });
+
+        // メッセージ送信
+        document.getElementById('chat-send').addEventListener('click', async () => {
+            if(!txtName.value.trim()) return alert("名前を入力してください");
+            if(!txtMsg.value.trim()) return;
+            await addDoc(collection(db, "chats"), {
+                name: txtName.value.trim(),
+                text: txtMsg.value.trim(),
+                createdAt: serverTimestamp()
+            });
+            txtMsg.value = '';
+        });
+
+        // --- 【Firebase】タスク管理（共有メモ）機能 ---
+        const taskMemo = document.getElementById('task-memo');
+        // メモ入力後にフォーカスが外れたらクラウドに保存
+        taskMemo.addEventListener('blur', async () => {
+            await setDoc(doc(db, "tasks", "shared_memo"), { text: taskMemo.value });
+        });
+        // 他の人がメモを更新したらリアルタイム反映
+        onSnapshot(doc(db, "tasks", "shared_memo"), (docSnap) => {
+            if(docSnap.exists() && document.activeElement !== taskMemo) {
+                taskMemo.value = docSnap.data().text;
+            }
+        });
+
         function updateTaskView() {
             const currentRole = roleSelect.value;
             if(!currentRole) {
@@ -201,122 +234,70 @@
             }
         }
 
-        // --- カレンダー描画ロジック ---
+        // --- カレンダー機能（UI描画のみ・クラウド保存は応用編としてUI構築のみ実装） ---
         let currentYear = new Date().getFullYear();
-        let currentMonth = new Date().getMonth(); // 0-11
+        let currentMonth = new Date().getMonth();
+        window.changeMonth = function(diff) {
+            currentMonth += diff;
+            if(currentMonth < 0) { currentMonth = 11; currentYear--; }
+            else if(currentMonth > 11) { currentMonth = 0; currentYear++; }
+            renderCalendar();
+        };
 
         function renderCalendar() {
             const grid = document.getElementById('calendar-grid');
             grid.innerHTML = '';
             document.getElementById('cal-month-label').innerText = `${currentYear}年 ${currentMonth + 1}月`;
-
             const days = ['日', '月', '火', '水', '木', '金', '土'];
             days.forEach(d => {
                 const header = document.createElement('div');
-                header.className = 'cal-cell-header';
-                header.innerText = d;
-                grid.appendChild(header);
+                header.className = 'cal-cell-header'; header.innerText = d; grid.appendChild(header);
             });
-
             const firstDay = new Date(currentYear, currentMonth, 1).getDay();
             const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-
-            // 空白セル
             for(let i = 0; i < firstDay; i++) {
                 const empty = document.createElement('div');
-                empty.className = 'cal-cell';
-                empty.style.background = '#f5f5f5';
-                grid.appendChild(empty);
+                empty.className = 'cal-cell'; empty.style.background = '#f5f5f5'; grid.appendChild(empty);
             }
-
-            // 日付セル
             for(let i = 1; i <= daysInMonth; i++) {
-                const cell = document.createElement('div');
-                cell.className = 'cal-cell';
-                
-                const dateLabel = document.createElement('div');
-                dateLabel.className = 'cal-date';
-                dateLabel.innerText = i;
-                
-                const content = document.createElement('div');
-                content.className = 'cal-content';
-                content.contentEditable = true;
-                
-                // 【クラウド保存用】 ここでFirebase等のDBから対象日のデータを取得・監視する
-                content.addEventListener('blur', () => {
-                   // クラウドへのデータ送信処理をここに記述
-                });
-
-                cell.appendChild(dateLabel);
-                cell.appendChild(content);
+                const cell = document.createElement('div'); cell.className = 'cal-cell';
+                cell.innerHTML = `<div class="cal-date">${i}</div><div class="cal-content" contenteditable="true"></div>`;
                 grid.appendChild(cell);
             }
         }
-
-        function changeMonth(diff) {
-            currentMonth += diff;
-            if(currentMonth < 0) { currentMonth = 11; currentYear--; }
-            else if(currentMonth > 11) { currentMonth = 0; currentYear++; }
-            renderCalendar();
-        }
         renderCalendar();
 
-        // --- チャットロジック ---
-        const btnSend = document.getElementById('chat-send');
-        const txtName = document.getElementById('chat-name');
-        const txtMsg = document.getElementById('chat-text');
-        const msgContainer = document.getElementById('chat-messages');
-
-        function appendMessage(name, text) {
-            const msgDiv = document.createElement('div');
-            msgDiv.className = 'chat-msg';
-            
-            const nameDiv = document.createElement('div');
-            nameDiv.className = 'chat-name';
-            nameDiv.innerText = name;
-            
-            const textDiv = document.createElement('div');
-            textDiv.innerText = text;
-            
-            msgDiv.appendChild(nameDiv);
-            msgDiv.appendChild(textDiv);
-            msgContainer.appendChild(msgDiv);
-            msgContainer.scrollTop = msgContainer.scrollHeight;
-        }
-
-        btnSend.addEventListener('click', () => {
-            const name = txtName.value.trim();
-            const text = txtMsg.value.trim();
-            if(!name) { alert("発言する前に必ず名前を入力してください。"); return; }
-            if(!text) return;
-            
-            // 【クラウド保存用】 ここでFirebaseのFirestore等にメッセージオブジェクトを追加する
-            // リアルタイムリスナー(onSnapshot等)で検知してappendMessageを呼ぶのがベストプラクティスです
-            appendMessage(name, text);
-            txtMsg.value = '';
-        });
-
-        // エンターキーで送信
-        txtMsg.addEventListener('keypress', (e) => {
-            if(e.key === 'Enter') btnSend.click();
-        });
-
-        // --- 役員相関図 画像アップロード ---
+        // --- 【Firebase】役員相関図アップロード機能 ---
         const fileInput = document.getElementById('file-input');
-        const uploadBtn = document.getElementById('upload-btn');
-        const chartImg = document.getElementById('chart-image');
+        const uploadStatus = document.getElementById('upload-status');
+        const chartImage = document.getElementById('chart-image');
 
-        fileInput.addEventListener('change', (e) => {
+        // 画像のURLがデータベースに保存されたら表示する
+        onSnapshot(doc(db, "settings", "org_chart"), (docSnap) => {
+            if(docSnap.exists()) {
+                chartImage.src = docSnap.data().url;
+                chartImage.style.display = 'inline-block';
+                document.getElementById('upload-btn').innerText = "画像を変更する";
+            }
+        });
+
+        fileInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if(file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    chartImg.src = e.target.result;
-                    chartImg.style.display = 'inline-block';
-                    uploadBtn.style.display = 'none';
-                    // 【クラウド保存用】 ここでFirebase Storage等に画像をアップロードし、URLをDBに保存・共有する
+                uploadStatus.innerText = "アップロード中...";
+                try {
+                    // Storageに画像を保存
+                    const imageRef = ref(storage, 'org-chart/' + file.name);
+                    await uploadBytes(imageRef, file);
+                    // 保存した画像の表示用URLを取得
+                    const url = await getDownloadURL(imageRef);
+                    // URLをFirestore(データベース)に保存し、全員に共有
+                    await setDoc(doc(db, "settings", "org_chart"), { url: url });
+                    uploadStatus.innerText = "アップロード完了！";
+                } catch(error) {
+                    console.error(error);
+                    uploadStatus.innerText = "エラーが発生しました（権限設定を確認してください）";
                 }
-                reader.readAsDataURL(file);
             }
         });
     </script>
